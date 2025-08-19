@@ -11,82 +11,81 @@ PRICE_HIKE_DATE = datetime(2021, 1, 15)
 df = pd.read_csv(DATA_PATH)
 df["Sales"] = pd.to_numeric(df["Sales"], errors="coerce")
 df["Date"]  = pd.to_datetime(df["Date"], errors="coerce")
+
+df["Region"] = df["Region"].astype(str).str.strip().str.lower()
 df = df.dropna(subset=["Date", "Sales", "Region"]).sort_values("Date")
 
-regions = sorted(df["Region"].unique().tolist())
-region_options = [{"label": "All regions", "value": "__ALL__"}] + [
-    {"label": r.title(), "value": r} for r in regions
+RADIO_OPTIONS = [
+    {"label": "North", "value": "north"},
+    {"label": "East",  "value": "east"},
+    {"label": "South", "value": "south"},
+    {"label": "West",  "value": "west"},
+    {"label": "All",   "value": "__ALL__"},
 ]
 
 app = Dash(__name__)
 app.title = "Pink Morsel Sales Visualiser"
 
 bg_layer = html.Div(
+    className="bg-space",
     style={
         "position": "fixed",
         "inset": "0",
-        "background": "radial-gradient(80% 60% at 50% 20%, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.92) 60%, rgba(0,0,0,1) 100%)",
-        "backdropFilter": "blur(10px)",
-        "WebkitBackdropFilter": "blur(10px)",
         "zIndex": 0,
     }
 )
 
 content = html.Div(
+    className="galaxy-card",
     style={
         "position": "relative",
         "zIndex": 1,
         "maxWidth": "1500px",
-        "margin": "40px auto",
+        "margin": "110px auto",
         "fontFamily": "Inter, Arial, sans-serif",
-        "color": "#fff", 
-
-        "border": "2px solid rgba(255,255,255,0.25)",  
-        "borderRadius": "12px",                       
-        "padding": "24px",                            
-        "boxShadow": "0 0 20px rgba(0,255,255,0.15)",  
-        "backgroundColor": "rgba(0,0,0,0.4)",          
-        "backdropFilter": "blur(6px)",
-        "WebkitBackdropFilter": "blur(6px)",
-        "backgroundColor": "rgba(0,0,0,0.4)", 
+        "color": "#fff",
+        "padding": "24px",
     },
     children=[
         html.H1(
             "Pink Morsel Sales Over Time",
-            style={"marginBottom": "8px", "fontWeight": 800}
+            className="title"
         ),
         html.Div(
             "Does the price increase on Jan 15, 2021 change total sales?",
-            style={"color": "rgba(255,255,255,0.75)", "marginBottom": "20px"}
+            className="subtitle"
         ),
-
         html.Div(
-            style={"display": "flex", "gap": "12px", "alignItems": "center", "marginBottom": "14px"},
+            className="control-bar galaxy-card--soft",
             children=[
-                html.Label("Region:", style={"fontWeight": 600}),
-                dcc.Dropdown(
-                    id="region-dd",
-                    options=region_options,
+                html.Label("Region:", className="label"),
+                dcc.RadioItems(
+                    id="region-radio",
+                    options=RADIO_OPTIONS,
                     value="__ALL__",
-                    clearable=False,
-                    style={"width": "260px", "color": "#000"}, 
+                    className="galaxy-radio",           
+                    inputClassName="radio-input",      
+                    labelClassName="radio-label",        
                 ),
             ],
         ),
 
-        dcc.Graph(id="sales-line"),
+        html.Div(
+            className="chart-wrap galaxy-card--soft",
+            children=[dcc.Graph(id="sales-line", className="chart")]
+        ),
         html.Div(
             "Note: Vertical line indicates Pink Morsel price increase on 2021-01-15.",
-            style={"color": "rgba(255,255,255,0.7)", "fontSize": "0.9rem", "marginTop": "8px"},
+            className="note"
         ),
     ],
 )
 
-app.layout = html.Div([bg_layer, content])
+app.layout = html.Div([bg_layer, content], className="root")
 
 @app.callback(
     Output("sales-line", "figure"),
-    Input("region-dd", "value"),
+    Input("region-radio", "value"),
 )
 def update_chart(region_value):
     if region_value == "__ALL__":
@@ -125,19 +124,20 @@ def update_chart(region_value):
         xaxis=dict(gridcolor="rgba(255,255,255,0.15)"),
         yaxis=dict(gridcolor="rgba(255,255,255,0.15)"),
     )
+
     fig.add_shape(
         type="line",
         x0=PRICE_HIKE_DATE, x1=PRICE_HIKE_DATE,
         y0=0, y1=1,
         xref="x", yref="paper",
-        line=dict(width=2, dash="dash", color="red"),
+        line=dict(width=2, dash="dash", color="#ff5c5c"),
     )
     fig.add_annotation(
         x=PRICE_HIKE_DATE, y=1.02,
         xref="x", yref="paper",
         text="Price hike (2021-01-15)",
         showarrow=False,
-        font=dict(color="red")
+        font=dict(color="#ff5c5c")
     )
     return fig
 
